@@ -8,15 +8,6 @@ const connection = mysql.createConnection({
     database: 'buisness'
 });
 
-// connection.query(
-//     'SELECT * FROM buisness.employee',
-//     function(err, results, fields) {
-//       console.log(results); // results contains rows returned by server
-//       console.log(fields); // fields contains extra meta data about results, if available
-//       console.log(err);
-//     }
-//   );
-
 function menu(){
     console.log(`
     Menu
@@ -31,7 +22,19 @@ function menu(){
     `);
 }
 
+async function getAll(table){
+    let con = await connection;
+    let t = await con.query(`SELECT * from ${table}`);
+    // console.log(t[0]);
+    return t[0];
+}
 async function addEmployee(){
+    let temp = [];
+    for(let i of await getAll('buisness.role')){
+        console.log(i['title']);
+        temp.push({name: i['title'],value: i['id']});
+    }
+    // console.log(temp)
     return await inquirer.prompt([
         {
             type: 'input',
@@ -44,24 +47,80 @@ async function addEmployee(){
             message: 'What is the Employee\'s last name?'
         },
         {
-
+            type: 'list',
+            name: 'roleID',
+            message: 'What role is this person in?',
+            choices: temp
+        },
+        {
+            type: 'number',
+            name: 'manager',
+            message: 'What is the manager id of this person?'
         }
     ]);
 }
 
-async function getDepartments(){
-    let con = await connection;
-    con= await con.query('SELECT * from buisness.department');
-    console.log(con[0]);
-    if(con){
-        return con[0];
+async function addDepartment(){
+    return await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'name',
+            message: 'What is the Department name?'
+        },
+
+    ]);
+}
+
+async function addRole(){
+    // let con = await connection;
+    // con = await con.query('SELECT * from buisness.department')
+    // console.log(con[0]);
+    let temp = [];
+    for(let i of await getAll("buisness.department")){
+        // console.log(i['title']);
+        temp.push({name: i['name'],value: i['id']});
+    }
+    // console.log(temp)
+    return await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'title',
+            message: 'What is the title of this role?'
+        },
+        {
+            type: 'number',
+            name: 'salary',
+            message: 'What is the salary of this role?'
+        },
+        {
+            type: 'list',
+            name: 'department',
+            message: 'What department is this role under?',
+            choices: temp
+        }
+    ]);
+}
+
+async function getDepartments(){ //mayb refactor these getters to just query the db with the string and not have 3 fucntions
+    let t = await getAll('buisness.department');
+    if(t){
+        return t;
     }
 }
 
 async function getEmployees(){
     let con = await connection;
     con = await con.query('SELECT * from buisness.employee');
-    console.log(con[0]);
+    // console.log(con[0]);
+    if(con){
+        return con[0];
+    }
+}
+
+async function getRoles(){
+    let con = await connection;
+    con = await con.query('SELECT * from buisness.role')
+    // console.log(con[0])
     if(con){
         return con[0];
     }
@@ -93,6 +152,11 @@ async function main(){
                 }
                 break;
             case 2:
+                let roles = await getRoles();
+                console.log(`RoleID|Role Title|Role Salary|Role department ID`);
+                for(let i of roles){
+                    console.log(`ID: ${i.id} | Title: ${i.title} |  Salary: ${i.salary} | DepId: ${i.department_id}`);
+                }
                 break;
             case 3:
                 let emp = await getEmployees();
@@ -102,11 +166,16 @@ async function main(){
                 }
                 break;
             case 4:
+                let temp2 =  await addDepartment();
+                console.log(temp2);
                 break;
             case 5:
+                let temp3 = await addRole();
+                console.log(temp3);
                 break;
             case 6:
-                addEmployee();
+                let temp = await addEmployee();
+                console.log(temp);
                 break;
             case 7:
                 break;
