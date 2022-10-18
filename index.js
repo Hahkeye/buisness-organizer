@@ -8,6 +8,7 @@ const connection = mysql.createConnection({
     database: 'buisness'
 });
 
+
 function menu(){
     console.log(`
     Menu
@@ -72,15 +73,11 @@ async function addDepartment(){
 }
 
 async function addRole(){
-    // let con = await connection;
-    // con = await con.query('SELECT * from buisness.department')
-    // console.log(con[0]);
     let temp = [];
-    for(let i of await getAll("buisness.department")){
-        // console.log(i['title']);
+    let t = getAll("buisness.department");
+    for(let i of t){
         temp.push({name: i['name'],value: i['id']});
     }
-    // console.log(temp)
     return await inquirer.prompt([
         {
             type: 'input',
@@ -101,6 +98,8 @@ async function addRole(){
     ]);
 }
 
+
+
 async function getDepartments(){ //mayb refactor these getters to just query the db with the string and not have 3 fucntions
     let t = await getAll('buisness.department');
     if(t){
@@ -109,21 +108,45 @@ async function getDepartments(){ //mayb refactor these getters to just query the
 }
 
 async function getEmployees(){
-    let con = await connection;
-    con = await con.query('SELECT * from buisness.employee');
-    // console.log(con[0]);
-    if(con){
-        return con[0];
+    let t = await getAll('buisness.employee');
+    if(t){
+        return t;
     }
 }
 
 async function getRoles(){
-    let con = await connection;
-    con = await con.query('SELECT * from buisness.role')
-    // console.log(con[0])
-    if(con){
-        return con[0];
+    let t = await getAll('buisness.role')
+    if(t){
+        return t;
     }
+}
+
+async function editEmployee(){
+    let temp2 = [];
+    for(let i of await getAll('buisness.role')){
+        console.log(i['title']);
+        temp2.push({name: i['title'],value: i['id']});
+    }
+    let temp=[];
+    let t = await getEmployees();
+    console.log(t);
+    for(let i of t){
+        temp.push({name: i['first_name'],value: i['id']});
+    }
+    return await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'employee',
+            message: 'What employee would you like to edit?',
+            choices: temp
+        },
+        {
+            type: 'list',
+            name: 'title',
+            message: 'What role would you like to change to?',
+            choices: temp2
+        }
+    ]); 
 }
 
 async function main(){
@@ -168,16 +191,28 @@ async function main(){
             case 4:
                 let temp2 =  await addDepartment();
                 console.log(temp2);
+                let con5 = await connection;
+                let t6 = await con5.execute(`INSERT INTO buisness.department (name) VALUES ('${temp2.name}');`);
                 break;
             case 5:
                 let temp3 = await addRole();
                 console.log(temp3);
+                let con2 = await connection;
+                let t2 = await con2.execute(`INSERT INTO buisness.role (title, salary, department_id) VALUES ('${temp3.title}','${temp3.salary}','${temp3.department}');`);
                 break;
             case 6:
                 let temp = await addEmployee();
                 console.log(temp);
+                let con = await connection;
+                let t = await con.execute(`INSERT INTO buisness.employee (first_name, last_name, role_id, manager_id) VALUES ('${temp.name}','${temp.lname}','${temp.roleID}','${temp.manager}');`);
+                // console.log(t);
                 break;
             case 7:
+                let a = await editEmployee();
+                console.log(a);
+                let con6 = await connection;
+                let asd = await con6.execute(`UPDATE buisness.employee SET role_id = ${a.title} WHERE id = ${a.employee};`);
+                
                 break;
         }
     }
