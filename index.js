@@ -1,9 +1,8 @@
-// const mysql = require('mysql2/promise');
-const { info } = require('console');
-const e = require('express');
 const inquirer = require('inquirer');
 const DBhelper = require('./helpers/dbhelper');
+const cTable = require('console.table');
 
+// add .env
 const connection = new DBhelper({
     host: 'localhost',
     user: 'root',
@@ -11,7 +10,7 @@ const connection = new DBhelper({
     database: 'buisness'
 });
 
-
+//The main menu print, should toatlly be done in one prompt but here we are
 function menu(){
     console.log(`
     Menu
@@ -23,19 +22,17 @@ function menu(){
     5. Add role
     6. Add employee
     7. Update entry.
-    9. view employees by group
-    10. delete something
-    11. search something
+    8. view employees by group
+    9. Exit
     `);
 }
-
-async function addEmployee(){
+//Fuction to add an employee                                                FIX THIS
+async function addEmployee(){//could refactor to just shove name and value in the returend 
     let temp = [];
     for(let i of await getAll('buisness.role')){
         console.log(i['title']);
         temp.push({name: i['title'],value: i['id']});
     }
-    // console.log(temp)
     return await inquirer.prompt([
         {
             type: 'input',
@@ -60,7 +57,7 @@ async function addEmployee(){
         }
     ]);
 }
-
+//Function to add a department. All we ask is for is the name
 async function addDepartment(){
     return await inquirer.prompt([
         {
@@ -71,12 +68,12 @@ async function addDepartment(){
 
     ]);
 }
-
+//Function to add a role. Only ask for name title and department its under. We only allow them to enter already existing departments
 async function addRole(){
     let temp = [];
     let t = await connection.get("buisness.department");
     for(let i of t){
-        temp.push({name: i['name'],value: i['id']});
+        temp.push({name: i['name'],value: i['id']});//Change this to just shove the stuff into the current array of dictionary
     }
     return await inquirer.prompt([
         {
@@ -99,7 +96,7 @@ async function addRole(){
 }
 
 
-async function edit(){
+async function edit(){//very overcomplicated edit function
     let tables = await connection.tables();
     let sel1= await inquirer.prompt(
         {
@@ -110,10 +107,9 @@ async function edit(){
         }
     );
     let records = await connection.get(sel1.table);//all values in the table
-    // console.log(sel1);//target table
     let targets = [];
     let keyl = null;
-    for(let i in records){
+    for(let i in records){//manipulate the data to add to the choices in the theycan select from
         console.log();
         let keys = Object.keys(records[i]);
         let id = records[i]['id'];
@@ -123,7 +119,6 @@ async function edit(){
         keys.forEach(x => temp+=` ${x}: ${records[i][x]} |`);
         targets.push({name: temp,value: id});
     }
-    // console.log(targets);
     let sel2 = await inquirer.prompt(
         {
             type: 'list',
@@ -132,7 +127,6 @@ async function edit(){
             choices: targets
         }
     );
-    // console.log(sel2);
     let sel3 = await inquirer.prompt(
         {
             type: 'list',
@@ -142,11 +136,10 @@ async function edit(){
         }
 
     );
-    if(tables.includes(sel3.field.split("_")[0])){
+    if(tables.includes(sel3.field.split("_")[0])){  //decect if this s a field we already track and then get all those so they can choose form it.
         let valus = await connection.get(sel3.field.split("_")[0]);
         let targets2=[];
         for(let i in valus){
-            console.log();
             let keys = Object.keys(valus[i]);
             let id = valus[i]['id'];
             keys.shift();
@@ -155,7 +148,6 @@ async function edit(){
             keys.forEach(x => temp+=` ${x}: ${valus[i][x]} |`);
             targets2.push({name: temp,value: id});
         }
-        // console.log(valus);
         let sel4 = await inquirer.prompt(
             {
                 type: 'list',
@@ -165,7 +157,6 @@ async function edit(){
             }
     
         ); 
-        // console.log(sel4);
         await connection.edit(sel1.table,sel3.field,sel4.value,sel2.target);
     }else{
         // console.log("Let user input");
@@ -177,12 +168,72 @@ async function edit(){
             }
     
         ); 
-        console.log(sel4);
+        // console.log(sel4);
+        console.table(sel4);
         await connection.edit(sel1.table,sel3.field,`"${sel4.value}"`,sel2.target);
         
     }
 }
+//search function
+async function search(){//view employees by manager or department
+    let sel1 = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'se',
+            message: 'What would you like to view employees by?',
+            choices: [
+                {name:"By manager",value: 'employee_manager'},
+                {name:"By department",value: 'role_id'},
+            ]
+        }
+    ]);
+    //department is  just role I guess
+    if(sel1.se=='role_id'){
+        let options = await connection.get('department');
+        for(let i in options){
+            options[i]['value']=options[i]['id'];
+        }
+        let sel2 = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'sel',
+                message: 'What role would you like to search by?',
+                choices: options
+            }
+        ]);
+        let results=[];
+        let temp2 = await connection.search('role',['id'],'department_id',sel2.sel);
+        for(let i in temp2){
+            let temp = await connection.search("employee",["first_name","id"],"role_id",temp2[i]['id']);
+            for(let i in temp){
+                results.push(temp[i]);
+            }
+        }
+        console.table(results);
+    }else{
+        let options = await connection.get('employee');
+        for(let i in options){
+            options[i]['name']=options[i]['first_name'];
+            options[i]['value']=options[i]['id'];
+        }
+        let sel2 = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'sel',
+                message: 'What manager would you like to sort by?',
+                choices: options
+            }
+        ]);
+        let temps = []
+        for(let i of options){
+            if(i['employee_manager']==sel2.sel){
+                temps.push(i);
+            }
+        }
+        console.table(temps)
+    }
 
+}
 
 async function main(){
     let sel=null
@@ -199,50 +250,39 @@ async function main(){
         }catch(e){
             console.log("Erorr ",e);
         }
-        // console.log(sel);
         switch(sel['selection']){
             case 1:
                 let dat = await connection.get('buisness.department')
-                console.log(dat);
-                connection.info('buisness.department');
+                console.table(dat);
                 break;
             case 2:
                 let roles = await connection.get('buisness.role');
-                connection.info('buisness.role');
-                console.log(`RoleID|Role Title|Role Salary|Role department ID`);
-                for(let i of roles){
-                    console.log(`ID: ${i.id} | Title: ${i.title} |  Salary: ${i.salary} | DepId: ${i.department_id}`);
-                }
+                console.table(roles);
                 break;
             case 3:
                 let emp = await connection.get('buisness.employee');
-                console.log(`Employe Name|Employee LastName|Role|Manager`);
-                for(let i of emp){
-                    console.log(`Name: ${i.first_name}|Last Name: ${i.last_name}| RoleID ${i.role_id}| MangerID ${i.manager_id} | ID ${i.id}`);
-                }
+                console.table(emp);
                 break;
             case 4:
                 let temp2 =  await addDepartment();
-                console.log(temp2);
                 connection.insert('buisness.department','name',[temp2.name]);
                 break;
             case 5:
                 let temp3 = await addRole();
-                console.log(temp3);
                 connection.insert('buisness.role',['title','salary','department_id'],[temp3.title,temp3.salary,temp3.department]);
                 break;
             case 6:
                 let temp = await addEmployee();
-                console.log(temp);
                 connection.insert('buisness.employee',['first_name','last_name','role_id','manager_id'],[temp.name,temp.lname,temp.roleID,temp.manager]);
-                // console.log(t);
                 break;
             case 7:
                 let a = await edit();
-                console.log(a);
                 break;
             case 8:
-
+                let t = await search();
+                break;
+            case 9:
+                process.exit(1);
                 break;
         }
     }

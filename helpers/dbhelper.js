@@ -17,11 +17,11 @@ class DBhelper{
         return temp[0];//need to listify the dictionary and make the id and the name the first two things so you can display it
     }
     async insert(table,data,values){
-        console.log(table);
-        console.log(values);
+        // console.log(table);
+        // console.log(values);
         values = Object.values(values).map(val=>`"${val}"`)
-        console.log(data);
-        console.log(`INSERT INTO ${table} (${data}) VALUES (${values});`);//add "?" before all string literals so mysql does nice things
+        // console.log(data);
+        // console.log(`INSERT INTO ${table} (${data}) VALUES (${values});`);//add "?" before all string literals so mysql does nice things
         let temp = await (await this.connection).execute(`INSERT INTO ${table} (${data}) VALUES (${values});`)
     }
 
@@ -37,12 +37,18 @@ class DBhelper{
 
     async tables(){
         let temp = await(await this.connection).query('SHOW TABLES');
-        // console.log(temp[0]);
         return temp[0].map(val => val['Tables_in_buisness']);
     }
 
-    async search(){
-        let temp = await(await this.connection).query();
+    async search(type,fields,field,value){
+        let temp = await(await this.connection).query(`SELECT ${fields} FROM ${type} WHERE ${field} = ${value}`);
+        return temp[0];
+
+    }
+
+    async words(blob){
+        let temp = await(await this.connection).query(`SELECT ${fields} FROM ${type} WHERE ${field} = ${value}`);
+        return temp[0];
     }
 
 }
