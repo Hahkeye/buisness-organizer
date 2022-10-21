@@ -28,11 +28,21 @@ function menu(){
 }
 //Fuction to add an employee                                                FIX THIS
 async function addEmployee(){//could refactor to just shove name and value in the returend 
-    let temp = [];
-    for(let i of await getAll('buisness.role')){
-        console.log(i['title']);
-        temp.push({name: i['title'],value: i['id']});
+    // let temp = [];
+    let x = await connection.get('buisness.role');
+    let y = await connection.get('buisness.employee');
+    for(let i of x){
+        // console.log(i['title']);
+        // temp.push({name: i['title'],value: i['id']});
+        i['name']=i['title'];
+        i['value']=i['id'];
     }
+    for(let i in y){
+        y[i]['name']=y[i]['first_name'];
+        y[i]['value']=y[i]['id'];
+    }
+    y.push({name: "None", value: "null"});
+
     return await inquirer.prompt([
         {
             type: 'input',
@@ -48,12 +58,13 @@ async function addEmployee(){//could refactor to just shove name and value in th
             type: 'list',
             name: 'roleID',
             message: 'What role is this person in?',
-            choices: temp
+            choices: x
         },
         {
-            type: 'number',
+            type: 'list',
             name: 'manager',
-            message: 'What is the manager id of this person?'
+            message: 'What is the manager id of this person?',
+            choices: y
         }
     ]);
 }
@@ -273,7 +284,8 @@ async function main(){
                 break;
             case 6:
                 let temp = await addEmployee();
-                connection.insert('buisness.employee',['first_name','last_name','role_id','manager_id'],[temp.name,temp.lname,temp.roleID,temp.manager]);
+                console.log(temp);
+                connection.insert('buisness.employee',['first_name','last_name','role_id','employee_manager'],[temp.name,temp.lname,temp.roleID,temp.manager]);
                 break;
             case 7:
                 let a = await edit();

@@ -12,11 +12,11 @@ class DBhelper{
         return temp[0];//need to listify the dictionary and make the id and the name the first two things so you can display it
     }
     async insert(table,data,values){
-        // console.log(table);
-        // console.log(values);
-        values = Object.values(values).map(val=>`"${val}"`)
-        // console.log(data);
-        // console.log(`INSERT INTO ${table} (${data}) VALUES (${values});`);//add "?" before all string literals so mysql does nice things
+        console.log(table);
+        console.log(values);
+        values = Object.values(values).map(val=>(val!="null")?`"${val}"`:`${val}`);
+        console.log(data);
+        console.log(`INSERT INTO ${table} (${data}) VALUES (${values});`);//add "?" before all string literals so mysql does nice things
         let temp = await (await this.connection).execute(`INSERT INTO ${table} (${data}) VALUES (${values});`)
     }
 
