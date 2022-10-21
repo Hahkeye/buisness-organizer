@@ -1,11 +1,6 @@
 const mysql = require('mysql2/promise');
-class Field{
-    constructor(blob){
-        this
-    }
-}
 
-
+//I didnt like the library
 class DBhelper{
 
     constructor(consetup){
